@@ -155,7 +155,7 @@ while True:
     if soup.find('input', {'name': 'caseInfoScrollForward'}) is None:
         break
     
-    sleep(2)
+    sleep(1)
     data = urllib.urlencode({
         'formAction':'',
         'curentFipsCode':case['FIPS'],
@@ -177,24 +177,33 @@ while True:
     soup = BeautifulSoup(page.read())
 
 for url in finalized_case_urls:
-    sleep(2)
+    sleep(1)
     url = 'https://eapps.courts.state.va.us/gdcourts/' + url
     page = opener.open(url)
     soup = BeautifulSoup(page.read())
-    content = list(soup.find('td', text=re.compile('Case Number')) \
-                       .parent.stripped_strings)
-    case_number = content[1]
-    filed_date = datetime.strptime(content[3], "%m/%d/%Y")
-    content = list(soup.find('td', text=re.compile('Name')) \
-                       .parent.stripped_strings)
-    name = content[1]
-    print case_number, name, filed_date
-    if filed_date == case['FILE_DATE']:
+    
+    cells = list(soup.find('td', text=re.compile('Case Number')) \
+                     .parent.find_all('td'))
+    case_number = cells[1].text.strip()
+    filed_date = datetime.strptime(cells[3].text.strip(), "%m/%d/%Y")
+    
+    cells = list(soup.find('td', text=re.compile('Name')) \
+                     .parent.find_all('td'))
+    name = cells[1].text.strip()
+    
+    cells = list(soup.find('td', text=re.compile('Case Type')) \
+                     .parent.find_all('td'))
+    case_type = cells[3].text.strip()
+    offense_class = cells[5].text.strip()
+    print case_number, name, filed_date, case_type, offense_class
+    if filed_date == case['FILE_DATE'] and \
+       case_type == 'Felony' and \
+       offense_class == case['OFFENSE_CLASS_CODE']:
         print 'MATCH'
-        case['MATCHING_CASES'] = {
+        case['MATCHING_CASES'].append({
             'CASE_NUMBER': case_number,
             'NAME': name
-        }
+        })
 print case
 
 # Go back to search results
