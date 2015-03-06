@@ -94,9 +94,10 @@ with open('cases/2014.csv', 'r') as case_file:
         row['COURT_NAME'] = court_names[row['FIPS']]
         row['FILE_DATE'] = datetime.strptime(row['FILE_DATE'], "%m/%d/%y")
         row['FINAL_DISP_DATE'] = datetime.strptime(row['FINAL_DISP_DATE'], "%m/%d/%y")
+        row['MATCHING_CASES'] = []
         cases.append(row)
 
-case = cases[0]
+case = cases[1]
 print case
 search_date = case['FINAL_DISP_DATE'].strftime('%m/%d/%Y')
 
@@ -154,6 +155,7 @@ while True:
     if soup.find('input', {'name': 'caseInfoScrollForward'}) is None:
         break
     
+    sleep(2)
     data = urllib.urlencode({
         'formAction':'',
         'curentFipsCode':case['FIPS'],
@@ -174,8 +176,8 @@ while True:
     page = opener.open(url, data)
     soup = BeautifulSoup(page.read())
 
-print case['COURT_NAME']
 for url in finalized_case_urls:
+    sleep(2)
     url = 'https://eapps.courts.state.va.us/gdcourts/' + url
     page = opener.open(url)
     soup = BeautifulSoup(page.read())
@@ -189,6 +191,11 @@ for url in finalized_case_urls:
     print case_number, name, filed_date
     if filed_date == case['FILE_DATE']:
         print 'MATCH'
+        case['MATCHING_CASES'] = {
+            'CASE_NUMBER': case_number,
+            'NAME': name
+        }
+print case
 
 # Go back to search results
 # https://eapps.courts.state.va.us/gdcourts/criminalDetail.do
