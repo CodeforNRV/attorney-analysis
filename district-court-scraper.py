@@ -95,35 +95,85 @@ with open('cases/2014.csv', 'r') as case_file:
         row['FILE_DATE'] = datetime.strptime(row['FILE_DATE'], "%m/%d/%y")
         row['FINAL_DISP_DATE'] = datetime.strptime(row['FINAL_DISP_DATE'], "%m/%d/%y")
         cases.append(row)
-print cases[0]
+
+case = cases[0]
+search_date = case['FINAL_DISP_DATE'].strftime('%m/%d/%Y')
 
 # Choose the court we want to search
-# https://eapps.courts.state.va.us/gdcourts/changeCourt.do
-#POST
-#selectedCourtsName:Accomack General District Court
-#selectedCourtsFipCode:001
-#sessionCourtsFipCode:
+data = urllib.urlencode({
+    'selectedCourtsName': case['COURT_NAME'],
+    'selectedCourtsFipCode': case['FIPS'],
+    'sessionCourtsFipCode': ''
+})
+url = u"https://eapps.courts.state.va.us/gdcourts/changeCourt.do"
+opener.open(url, data)
 
 # Choose Hearing Date Search
-# https://eapps.courts.state.va.us/gdcourts/caseSearch.do?fromSidebar=true&searchLanding=searchLanding&searchType=hearingDate&searchDivision=T&searchFipsCode=001&curentFipsCode=001
+url = u"https://eapps.courts.state.va.us/gdcourts/caseSearch.do"
+url += u"?fromSidebar=true&searchLanding=searchLanding"
+url += u"&searchType=hearingDate&searchDivision=T&"
+url += u"&searchFipsCode=" + case['FIPS']
+url += u"&curentFipsCode=" + case['FIPS']
+opener.open(url)
 
 # Search for a date
-# https://eapps.courts.state.va.us/gdcourts/caseSearch.do
-#formAction:
-#curentFipsCode:001
-#searchTerm:03/06/2015
-#searchHearingTime:
-#searchCourtroom:
-#lastName:
-#firstName:
-#middleName:
-#suffix:
-#searchHearingType:
-#searchUnitNumber:
-#caseSearch:Search
-#searchFipsCode:001
+data = urllib.urlencode({
+    'formAction':'',
+    'curentFipsCode':case['FIPS'],
+    'searchTerm':search_date,
+    'searchHearingTime':'',
+    'searchCourtroom':'',
+    'lastName':'',
+    'firstName':'',
+    'middleName':'',
+    'suffix':'',
+    'searchHearingType':'',
+    'searchUnitNumber':'',
+    'caseSearch':'Search',
+    'searchFipsCode':case['FIPS']
+})
+url = u"https://eapps.courts.state.va.us/gdcourts/caseSearch.do"
+page = opener.open(url, data)
+soup = BeautifulSoup(page.read())
 
 # Find Finalized results
+finalized_cases = []
+while True:
+    rows = soup.find('table', {'class':'tableborder'}).find_all('tr')
+    for row in rows:
+        cells = row.find_all('td')
+        if cells[0]['class'][0] == 'gridheader':
+            continue
+        case_number = list(cells[1].stripped_strings)[0]
+        case_status = list(cells[6].stripped_strings)[0]
+        if case_status == 'Finalized':
+            finalized_cases.append(case_number)
+
+    # Click next button, if its there
+    if soup.find('input', {'name': 'caseInfoScrollForward'}) is None:
+        break
+    
+    data = urllib.urlencode({
+        'formAction':'',
+        'curentFipsCode':case['FIPS'],
+        'searchTerm':search_date,
+        'searchHearingTime':'',
+        'searchCourtroom':'',
+        'lastName':'',
+        'firstName':'',
+        'middleName':'',
+        'suffix':'',
+        'searchHearingType':'',
+        'searchUnitNumber':'',
+        'searchFipsCode':case['FIPS'],
+        'caseInfoScrollForward':'Next',
+        'unCheckedCases':''
+    })
+    url = u"https://eapps.courts.state.va.us/gdcourts/caseSearch.do"
+    page = opener.open(url, data)
+    soup = BeautifulSoup(page.read())
+
+print finalized_cases
 
 # Open result and check Filed Date
 #https://eapps.courts.state.va.us/gdcourts/caseSearch.do?formAction=caseDetails&displayCaseNumber=GC15000299-00&localFipsCode=001&caseActive=true&clientSearchCounter=6
@@ -144,19 +194,3 @@ print cases[0]
 #button:Back to Search Results
 #clientSearchCounter:6
 
-# Click next button
-# https://eapps.courts.state.va.us/gdcourts/caseSearch.do
-#formAction:caseDetails
-#curentFipsCode:001
-#searchTerm:03/04/2015
-#searchHearingTime:
-#searchCourtroom:
-#lastName:
-#firstName:
-#middleName:
-#suffix:
-#searchHearingType:
-#searchUnitNumber:
-#searchFipsCode:001
-#caseInfoScrollForward:Next
-#unCheckedCases:
