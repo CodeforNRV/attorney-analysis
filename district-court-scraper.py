@@ -1,3 +1,4 @@
+import csv
 import cookielib
 import os
 import os.path
@@ -8,6 +9,7 @@ import urllib
 import urllib2
 import webbrowser
 from bs4 import BeautifulSoup
+from datetime import datetime
 from time import sleep
 
 def solve_captcha(opener):
@@ -76,8 +78,24 @@ if 'By clicking Accept' in page_content:
     page = opener.open(url)
     soup = BeautifulSoup(page.read())
 
-for input_tag in soup.find_all('input'):
-    print input_tag
+# Load list of courts and fips codes
+fips = [tag['value'] for tag in soup.find_all('input', {'name':'courtFips'})]
+names = [tag['value'] for tag in soup.find_all('input', {'name':'courtName'})]
+court_names = {}
+for f, c in zip(fips, names):
+    court_names[f] = c
+
+# load cases
+cases = []
+with open('cases/2014.csv', 'r') as case_file:
+    case_file_reader = csv.DictReader(case_file)
+    for row in case_file_reader:
+        row['FIPS'] = row['FIPS'].zfill(3)
+        row['COURT_NAME'] = court_names[row['FIPS']]
+        row['FILE_DATE'] = datetime.strptime(row['FILE_DATE'], "%m/%d/%y")
+        row['FINAL_DISP_DATE'] = datetime.strptime(row['FINAL_DISP_DATE'], "%m/%d/%y")
+        cases.append(row)
+print cases[0]
 
 # Choose the court we want to search
 # https://eapps.courts.state.va.us/gdcourts/changeCourt.do
