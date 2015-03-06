@@ -97,6 +97,7 @@ with open('cases/2014.csv', 'r') as case_file:
         cases.append(row)
 
 case = cases[0]
+print case
 search_date = case['FINAL_DISP_DATE'].strftime('%m/%d/%Y')
 
 # Choose the court we want to search
@@ -137,17 +138,17 @@ page = opener.open(url, data)
 soup = BeautifulSoup(page.read())
 
 # Find Finalized results
-finalized_cases = []
+finalized_case_urls = []
 while True:
     rows = soup.find('table', {'class':'tableborder'}).find_all('tr')
     for row in rows:
         cells = row.find_all('td')
         if cells[0]['class'][0] == 'gridheader':
             continue
-        case_number = list(cells[1].stripped_strings)[0]
+        case_detail_url = cells[1].a['href']
         case_status = list(cells[6].stripped_strings)[0]
         if case_status == 'Finalized':
-            finalized_cases.append(case_number)
+            finalized_case_urls.append(case_detail_url)
 
     # Click next button, if its there
     if soup.find('input', {'name': 'caseInfoScrollForward'}) is None:
@@ -173,10 +174,21 @@ while True:
     page = opener.open(url, data)
     soup = BeautifulSoup(page.read())
 
-print finalized_cases
-
-# Open result and check Filed Date
-#https://eapps.courts.state.va.us/gdcourts/caseSearch.do?formAction=caseDetails&displayCaseNumber=GC15000299-00&localFipsCode=001&caseActive=true&clientSearchCounter=6
+print case['COURT_NAME']
+for url in finalized_case_urls:
+    url = 'https://eapps.courts.state.va.us/gdcourts/' + url
+    page = opener.open(url)
+    soup = BeautifulSoup(page.read())
+    content = list(soup.find('td', text=re.compile('Case Number')) \
+                       .parent.stripped_strings)
+    case_number = content[1]
+    filed_date = datetime.strptime(content[3], "%m/%d/%Y")
+    content = list(soup.find('td', text=re.compile('Name')) \
+                       .parent.stripped_strings)
+    name = content[1]
+    print case_number, name, filed_date
+    if filed_date == case['FILE_DATE']:
+        print 'MATCH'
 
 # Go back to search results
 # https://eapps.courts.state.va.us/gdcourts/criminalDetail.do
