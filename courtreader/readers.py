@@ -34,3 +34,8 @@ class DistrictCourtReader:
             sleep(1)
             soup = self.opener.do_hearing_date_search(fips_code, date, False)
         return cases
+    
+    def get_case_details(self, case):
+        sleep(1)
+        soup = self.opener.open_case_details(case)
+        return districtcourtparser.parse_case_details(soup)

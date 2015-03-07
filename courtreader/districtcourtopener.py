@@ -69,3 +69,8 @@ class DistrictCourtOpener:
         url = self.url('caseSearch.do')
         page = self.opener.open(url, data)
         return BeautifulSoup(page.read())
+    
+    def open_case_details(self, case):
+        url = self.url(case['details_url'])
+        page = self.opener.open(url)
+        return BeautifulSoup(page.read())
