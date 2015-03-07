@@ -69,7 +69,10 @@ with open('cases/2014_matched.csv', 'wb') as matched_cases_file:
             matched_case_writer.writeheader()
         if len(matching_cases) > 0:
             matched_case_writer.writerows(matching_cases)
-        else:
+        else:    
+            partial_case['FIPS'] = int(partial_case['FIPS'])
+            partial_case['FILE_DATE'] = dt_str(partial_case['FILE_DATE'])
+            partial_case['FINAL_DISP_DATE'] = dt_str(partial_case['FINAL_DISP_DATE'])
             matched_case_writer.writerow(partial_case)
         matched_cases_file.flush()
 
