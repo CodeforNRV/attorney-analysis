@@ -41,6 +41,6 @@ class DistrictCourtReader:
         return cases
     
     def get_case_details(self, case):
-        sleep(0.5)
+        sleep(1)
         soup = self.opener.open_case_details(case)
         return districtcourtparser.parse_case_details(soup)
