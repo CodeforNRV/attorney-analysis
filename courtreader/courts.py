@@ -24,3 +24,10 @@ class DistrictCourt:
             
             page = self.opener.open(url)
             soup = BeautifulSoup(page.read())
+        
+        # Load list of courts and fips codes
+        fips = [tag['value'] for tag in soup.find_all('input', {'name':'courtFips'})]
+        names = [tag['value'] for tag in soup.find_all('input', {'name':'courtName'})]
+        self.court_names = {}
+        for f, c in zip(fips, names):
+            self.court_names[f] = c
