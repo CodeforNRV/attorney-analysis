@@ -62,8 +62,9 @@ def cases_match(partial_case, case_details):
 reader = readers.DistrictCourtReader()
 reader.connect()
 
-partial_cases_file_path = 'cases/2014.csv'
-matched_cases_file_path = 'cases/2014_matched.csv'
+case_year = '2014'
+partial_cases_file_path = 'cases/' + case_year + '.csv'
+matched_cases_file_path = 'cases/' + case_year + '_matched.csv'
 
 matched_cases = []
 if os.path.isfile(matched_cases_file_path):
@@ -75,7 +76,12 @@ with open(matched_cases_file_path, 'wb') as matched_cases_file:
     matched_case_writer = csv.DictWriter(matched_cases_file, \
                                          csv_fieldnames)
     matched_case_writer.writeheader()
-    matched_case_writer.writerows(matched_cases)
+    for case in matched_cases:
+        case_to_file = case.copy()
+        case_to_file['FIPS'] = int(case_to_file['FIPS'])
+        case_to_file['FILE_DATE'] = dt_str(case_to_file['FILE_DATE'])
+        case_to_file['FINAL_DISP_DATE'] = dt_str(case_to_file['FINAL_DISP_DATE'])
+        matched_case_writer.writerow(case_to_file)
     matched_cases_file.flush()
     
     for i, partial_case in enumerate(partial_cases):
