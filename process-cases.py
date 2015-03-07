@@ -1,4 +1,5 @@
 import csv
+import os.path
 import sys
 from courtreader import readers
 from datetime import datetime
@@ -44,6 +45,15 @@ def find_matching_cases(partial_case, cases):
                 matching_cases.append(matching_case)
     return matching_cases
 
+def case_has_match(partial_case, matched_cases):
+    for case in matched_cases:
+        if case['FIPS'] == partial_case['FIPS'] and \
+           case['FILE_DATE'] == partial_case['FILE_DATE'] and \
+           case['OFFENSE_CLASS_CODE'] == partial_case['OFFENSE_CLASS_CODE'] and \
+           case['FINAL_DISP_DATE'] == partial_case['FINAL_DISP_DATE']:
+           return True
+    return False
+
 def cases_match(partial_case, case_details):
     return case_details['filed_date'] == partial_case['FILE_DATE'] and \
            case_details['case_type'] == 'Felony' and \
@@ -52,21 +62,31 @@ def cases_match(partial_case, case_details):
 reader = readers.DistrictCourtReader()
 reader.connect()
 
-partial_cases = load_case_file('cases/2014.csv')
+partial_cases_file_path = 'cases/2014.csv'
+matched_cases_file_path = 'cases/2014_matched.csv'
+
+matched_cases = []
+if os.path.isfile(matched_cases_file_path):
+    matched_cases = load_case_file(matched_cases_file_path)
+partial_cases = load_case_file(partial_cases_file_path)
 csv_fieldnames.extend(['CASE_NUMBER', 'NAME', 'MATCH'])
 
-with open('cases/2014_matched.csv', 'wb') as matched_cases_file:
-    matched_case_writer = None
+with open(matched_cases_file_path, 'wb') as matched_cases_file:
+    matched_case_writer = csv.DictWriter(matched_cases_file, \
+                                         csv_fieldnames)
+    matched_case_writer.writeheader()
+    matched_case_writer.writerows(matched_cases)
+    matched_cases_file.flush()
+    
     for i, partial_case in enumerate(partial_cases):
         print '\nPartial case ' + str(i+1) + ' of ' + str(len(partial_cases))
+        if case_has_match(partial_case, matched_cases):
+            print '\tAlready Matched',
+            continue
         fips_code = partial_case['FIPS']
         search_date = partial_case['FINAL_DISP_DATE']
         cases = reader.get_cases_by_date(fips_code, search_date)
         matching_cases = find_matching_cases(partial_case, cases)
-        if matched_case_writer is None:
-            matched_case_writer = csv.DictWriter(matched_cases_file, \
-                                                 csv_fieldnames)
-            matched_case_writer.writeheader()
         if len(matching_cases) > 0:
             matched_case_writer.writerows(matching_cases)
         else:    
