@@ -1,4 +1,5 @@
 import districtcourtparser
+import sys
 from districtcourtopener import DistrictCourtOpener
 from time import sleep
 
@@ -23,12 +24,16 @@ class DistrictCourtReader:
         sleep(1)
         
         date = date.strftime('%m/%d/%Y')
+        print '\tSearching ' + self.court_names[fips_code] + \
+              ' for cases on ' + date
         soup = self.opener.do_hearing_date_search(fips_code, date, True)
         sleep(1)
         
         cases = []
         while True:
             cases.extend(districtcourtparser.parse_hearing_date_search(soup))
+            print '\tFound ' + str(len(cases)) + ' cases\r',
+            sys.stdout.flush()
             if not districtcourtparser.next_button_found(soup):
                 break
             sleep(1)

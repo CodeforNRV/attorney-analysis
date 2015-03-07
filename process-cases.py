@@ -1,4 +1,5 @@
 import csv
+import sys
 from courtreader import readers
 from datetime import datetime
 
@@ -17,28 +18,33 @@ def load_case_file(file_path):
             cases.append(row)
     return cases
 
-def cases_match(case_details, case_file):
-    return case_details['filed_date'] == case_file['FILE_DATE'] and \
+def find_complete_case(partial_case, cases):
+    for i, case in enumerate(cases):
+        if case['status'] == 'Finalized':
+            print '\tGetting details for case ' + str(i+1) + \
+                  ' of ' + str(len(cases)) + '\r',
+            sys.stdout.flush()
+            case_details = reader.get_case_details(case)
+            if cases_match(partial_case, case_details):
+                print '\nMATCH ' + case_details['case_number']
+                partial_case['MATCHING_CASES'].append({
+                    'CASE_NUMBER': case_details['case_number'],
+                    'NAME': case_details['name']
+                })
+
+def cases_match(partial_case, case_details):
+    return case_details['filed_date'] == partial_case['FILE_DATE'] and \
            case_details['case_type'] == 'Felony' and \
-           case_details['offense_class'] == case_file['OFFENSE_CLASS_CODE']
+           case_details['offense_class'] == partial_case['OFFENSE_CLASS_CODE']
 
 reader = readers.DistrictCourtReader()
 reader.connect()
 
-cases = load_case_file('cases/2014.csv')
-case = cases[0]
-print case
-
-fips_code = case['FIPS']
-search_date = case['FINAL_DISP_DATE']
-cases_on_date = reader.get_cases_by_date(fips_code, search_date)
-for case_on_date in cases_on_date:
-    if case_on_date['status'] == 'Finalized':
-        case_details = reader.get_case_details(case_on_date)
-        if cases_match(case_details, case):
-            print 'MATCH'
-            case['MATCHING_CASES'].append({
-                'CASE_NUMBER': case_details['case_number'],
-                'NAME': case_details['name']
-            })
+partial_cases = load_case_file('cases/2014.csv')
+for i, partial_case in enumerate(partial_cases):
+    print '\nPartial case ' + str(i+1) + ' of ' + str(len(partial_cases))
+    fips_code = partial_case['FIPS']
+    search_date = partial_case['FINAL_DISP_DATE']
+    cases = reader.get_cases_by_date(fips_code, search_date)
+    find_complete_case(partial_case, cases)
 
